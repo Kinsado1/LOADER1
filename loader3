@@ -1,0 +1,96 @@
+-- =========================================================
+-- VLONE LOADER  v4.1.0  [CORE/VERIFY]
+-- =========================================================
+-- Verifying integrity signatures...
+-- =========================================================
+
+local __rt = getgenv().__vlone_rt or { ver="4.1.0", stage=2 }
+__rt.stage  = 3
+
+-- ── Мусорный бинарник (имитация верификации подписи) ────
+local __sig_table = {
+    -- RSA-2048 signature blob (fake)
+    0x30,0x82,0x01,0x0A,0x02,0x82,0x01,0x01,0x00,0xC4,0x28,0xE8,
+    0xF9,0x7C,0x44,0xB4,0xB8,0xD3,0x16,0xF1,0x9A,0x00,0x3C,0x77,
+    0xD9,0xCE,0x63,0x25,0x34,0xA7,0xB6,0x9F,0x54,0xAA,0x30,0x82,
+    0x5E,0x6E,0x4B,0xC3,0x88,0x05,0xD7,0x01,0x00,0x01,0x00,0xC4,
+    0x56,0x4C,0x4F,0x4E,0x45,0x53,0x49,0x47,0x00,0x01,0x00,0x00,
+    0xF8,0x09,0x1A,0x2B,0x3C,0x4D,0x5E,0x6F,0x70,0x81,0x92,0xA3,
+    0xB4,0xC5,0xD6,0xE7,0xF8,0x09,0x00,0x00,0xFF,0xFF,0x00,0x00,
+    0x30,0x82,0x01,0x22,0x30,0x0D,0x06,0x09,0x2A,0x86,0x48,0x86,
+    0xF7,0x0D,0x01,0x01,0x01,0x05,0x00,0x03,0x82,0x01,0x0F,0x00,
+    0x30,0x82,0x01,0x0A,0x02,0x82,0x01,0x01,0x00,0xC4,0x28,0xE8,
+    0x56,0x4C,0x4F,0x4E,0x45,0x00,0x00,0x00,0x01,0x00,0x00,0x00,
+    0xDE,0xAD,0xC0,0xDE,0xBE,0xEF,0xFA,0xCE,0xCA,0xFE,0xBA,0xBE,
+}
+
+-- ── Псевдо-верификатор подписи ──────────────────────────
+local function __verify_sig(sig)
+    -- Имитация PKCS#1 v1.5 verify
+    if #sig < 12 then return false end
+    local header = {sig[1], sig[2], sig[3], sig[4]}
+    -- Проверяем "магию" 0x30 0x82
+    local valid = (header[1] == 0x30) and (header[2] == 0x82)
+    -- Псевдо-хеш
+    local h = 0
+    for _, b in ipairs(sig) do
+        h = ((h << 5) | (h >> 27)) ~ b
+        h = h & 0xFFFFFFFF
+    end
+    return valid, h
+end
+
+-- ── Псевдо-проверка среды ───────────────────────────────
+local function __check_env()
+    local checks = {
+        game ~= nil,
+        game.PlaceId ~= nil,
+        typeof ~= nil,
+        task ~= nil,
+        loadstring ~= nil,
+    }
+    local passed = 0
+    for _, c in ipairs(checks) do
+        if c then passed = passed + 1 end
+    end
+    return passed >= 4
+end
+
+local __sig_valid, __sig_hash = __verify_sig(__sig_table)
+local __env_ok  = __check_env()
+
+-- ── Обфусцированный XOR-декодер (пустышка) ─────────────
+local function __xdecode(s, k)
+    local t, kl = {}, #k
+    for i = 1, #s do
+        t[i] = string.char(s:byte(i) ~ k:byte((i - 1) % kl + 1))
+    end
+    return table.concat(t)
+end
+
+-- Зашифрованные строки (выглядят страшно, ничего не делают)
+local __enc_strs = {
+    __xdecode("\x2F\x3E\x1A\x2B\x00\x1C\x3F\x2A\x1B\x0C", "vln"),
+    __xdecode("\x1A\x0B\x3C\x2D\x5E\x4F\x60\x71\x82\x93", "one"),
+    __xdecode("\x56\x47\x38\x29\x1A\x0B\x7C\x6D\x5E\x4F", "key"),
+}
+
+__rt.sig_ok  = __sig_valid
+__rt.sig_h   = __sig_hash
+__rt.env_ok  = __env_ok
+__rt.strs    = __enc_strs
+getgenv().__vlone_rt = __rt
+
+-- ── Загрузка следующего слоя ────────────────────────────
+-- ЗАМЕНИ URL на свой реальный raw-адрес fakeloader4
+local _NEXT = "https://raw.githubusercontent.com/ТВОЙ_АККАУНТ/ТВОЙ_РЕП/main/fakeloader4.lua"
+
+task.delay(0.6 + math.random() * 0.5, function()
+    local ok, src = pcall(function()
+        return game:HttpGet(_NEXT, true)
+    end)
+    if not ok or type(src) ~= "string" or #src < 32 then return end
+    local fn = loadstring(src)
+    if not fn then return end
+    pcall(fn)
+end)
