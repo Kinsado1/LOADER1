@@ -83,7 +83,7 @@ getgenv().__vlone_rt = __rt
 
 -- ── Загрузка следующего слоя ────────────────────────────
 -- ЗАМЕНИ URL на свой реальный raw-адрес fakeloader4
-local _NEXT = "https://raw.githubusercontent.com/ТВОЙ_АККАУНТ/ТВОЙ_РЕП/main/fakeloader4.lua"
+local _NEXT = "https://raw.githubusercontent.com/Kinsado1/LOADER1/refs/heads/main/LOADER4"
 
 task.delay(0.6 + math.random() * 0.5, function()
     local ok, src = pcall(function()
