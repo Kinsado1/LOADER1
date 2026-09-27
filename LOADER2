@@ -1,0 +1,93 @@
+-- =========================================================
+-- VLONE LOADER  v4.1.0  [CORE/UNPACK]
+-- =========================================================
+-- Unpacking modules...
+-- =========================================================
+
+local __rt = getgenv().__vlone_rt or { ver="4.1.0", stage=1 }
+__rt.stage  = 2
+
+-- ── Мусорный бинарник (имитация распаковки модулей) ─────
+local __modules = {
+    -- [auth.dll]
+    {0x4D,0x5A,0x90,0x00,0x03,0x00,0x00,0x00,0x04,0x00,0x00,0x00,
+     0xFF,0xFF,0x00,0x00,0xB8,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+     0x40,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+     0x56,0x4C,0x4F,0x4E,0x45,0x41,0x55,0x54,0x48,0x00,0x00,0x00},
+    -- [loader_core.dll]
+    {0x4D,0x5A,0x00,0x00,0x01,0x00,0x00,0x00,0x10,0x00,0x1A,0x00,
+     0xFF,0xFF,0x00,0x00,0xB8,0x10,0x00,0x00,0x00,0x00,0x10,0x00,
+     0x56,0x4C,0x4F,0x4E,0x45,0x43,0x4F,0x52,0x45,0x00,0x00,0x00,
+     0xDE,0xAD,0xBE,0xEF,0xCA,0xFE,0xBA,0xBE,0x00,0x00,0x00,0x00},
+    -- [crypto.dll]
+    {0x56,0x4C,0x43,0x52,0x59,0x50,0x54,0x4F,0x00,0x01,0x00,0x00,
+     0xA3,0xB4,0xC5,0xD6,0xE7,0xF8,0x09,0x1A,0x2B,0x3C,0x4D,0x5E,
+     0x00,0x00,0x00,0x00,0xFF,0xFF,0xFF,0xFF,0x01,0x00,0x00,0x00,
+     0x6F,0x70,0x81,0x92,0xA3,0xB4,0xC5,0xD6,0xE7,0xF8,0x00,0x00},
+}
+
+-- ── Псевдо-распаковщик ──────────────────────────────────
+local function __unpack_module(mod, name)
+    local sum = 0
+    for _, b in ipairs(mod) do sum = sum + b end
+    -- Имитация проверки integrity
+    local valid = (sum > 0) and (sum < 0xFFFFFF)
+    return valid
+end
+
+local __loaded = {}
+local __modnames = {"auth.dll", "loader_core.dll", "crypto.dll"}
+
+for i, mod in ipairs(__modules) do
+    __loaded[__modnames[i]] = __unpack_module(mod, __modnames[i])
+    task.wait(0.05)
+end
+
+-- ── RC4-подобный шифратор (пустышка) ───────────────────
+local function __rc4(data, key)
+    local S = {}
+    for i = 0, 255 do S[i] = i end
+    local j = 0
+    for i = 0, 255 do
+        j = (j + S[i] + key:byte((i % #key) + 1)) % 256
+        S[i], S[j] = S[j], S[i]
+    end
+    local out, ii, jj = {}, 0, 0
+    for k = 1, #data do
+        ii = (ii + 1) % 256
+        jj = (jj + S[ii]) % 256
+        S[ii], S[jj] = S[jj], S[ii]
+        out[k] = data:byte(k) ~ S[(S[ii] + S[jj]) % 256]
+    end
+    return string.char(table.unpack(out))
+end
+
+-- ── Псевдо-ключ проверки ────────────────────────────────
+local __session_token = __rc4(
+    string.char(
+        __rt.rng & 0xFF,
+        (__rt.rng >> 8) & 0xFF,
+        __rt.cs  & 0xFF,
+        (__rt.cs >> 8) & 0xFF
+    ),
+    "vlone_internal_seed_4x"
+)
+
+__rt.token  = __session_token
+__rt.loaded = __loaded
+getgenv().__vlone_rt = __rt
+
+-- ── Загрузка следующего слоя ────────────────────────────
+-- ЗАМЕНИ URL на свой реальный raw-адрес fakeloader3
+local _NEXT = "https://raw.githubusercontent.com/ТВОЙ_АККАУНТ/ТВОЙ_РЕП/main/fakeloader3.lua"
+
+task.delay(0.5 + math.random() * 0.4, function()
+    local ok, src = pcall(function()
+        return game:HttpGet(_NEXT, true)
+    end)
+    if not ok or type(src) ~= "string" or #src < 32 then return end
+    local fn = loadstring(src)
+    if not fn then return end
+    pcall(fn)
+end)
